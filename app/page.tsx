@@ -2,17 +2,17 @@
 
 import { useState } from "react"
 import { Upload, FileText, MessageSquare, FileCheck, Briefcase, DollarSign, Sparkles, TrendingUp, Home } from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { useToast } from "@/hooks/use-toast"
-import UploadSection from "@/components/upload-section"
-import AnalysisSection from "@/components/analysis-section"
-import ChatSection from "@/components/chat-section"
-import CoverLetterSection from "@/components/cover-letter-section"
-import InterviewPrepSection from "@/components/interview-prep-section"
-import SalaryInsightsSection from "@/components/salary-insights-section"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs"
+import { Button } from "@/src/components/ui/button"
+import { Badge } from "@/src/components/ui/badge"
+import { Card, CardContent } from "@/src/components/ui/card"
+import { useToast } from "@/src/hooks/use-toast"
+import UploadSection from "@/src/components/upload-section"
+import AnalysisSection from "@/src/components/analysis-section"
+import ChatSection from "@/src/components/chat-section"
+import CoverLetterSection from "@/src/components/cover-letter-section"
+import InterviewPrepSection from "@/src/components/interview-prep-section"
+import SalaryInsightsSection from "@/src/components/salary-insights-section"
 
 export default function Home() {
   const [resumeUploaded, setResumeUploaded] = useState(false)
