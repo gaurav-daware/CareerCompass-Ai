@@ -26,7 +26,6 @@ A complete full-stack application for analyzing resumes using AI, featuring ATS 
 ### 💼 **Interview Preparation**
 - **Confident Interview Practice** - Practice with likely interview questions and talking points
 - **Role-Specific Questions** - Get questions tailored to your target position and industry
-- **Performance Feedback** - AI-powered feedback on your interview responses
 
 ### 💰 **Salary Insights**
 - **Market-Informed Compensation** - Get salary ranges based on your experience and location
