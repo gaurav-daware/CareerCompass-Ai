@@ -120,7 +120,6 @@ npm run dev
 ### 5. **Prepare for Interviews**
 - Access the **"Interview"** tab
 - Get role-specific questions and practice scenarios
-- Receive AI feedback on your responses
 
 ### 6. **Explore Salary Insights**
 - Check the **"Salary"** tab
