@@ -8,7 +8,7 @@ import { Badge } from "@/src/components/ui/badge"
 import { Loader2, Briefcase, MessageCircle, Lightbulb, HelpCircle } from "lucide-react"
 import { useToast } from "@/src/hooks/use-toast"
 
-const API_URL = "http://localhost:5000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
 // 1. Define the TypeScript interface for the expected API data structure
 interface InterviewPrepData {

@@ -9,7 +9,7 @@ import { Progress } from "@/src/components/ui/progress"
 import { Loader2, TrendingUp, AlertCircle, CheckCircle2, Target, PieChart, Lightbulb } from "lucide-react"
 import { useToast } from "@/src/hooks/use-toast"
 
-const API_URL = "http://localhost:5000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
 export default function AnalysisSection() {
   const [jobRequirement, setJobRequirement] = useState("")

@@ -8,7 +8,7 @@ import { Textarea } from "@/src/components/ui/textarea"
 import { Loader2, FileText, Copy, Check } from "lucide-react"
 import { useToast } from "@/src/hooks/use-toast"
 
-const API_URL = "http://localhost:5000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
 /**
  * Converts raw text (which likely contains \n\n for new paragraphs) into

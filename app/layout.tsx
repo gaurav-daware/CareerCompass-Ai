@@ -10,7 +10,7 @@ import "./globals.css"
 export const metadata: Metadata = {
   title: "ResumeAI - AI-Powered Career Platform",
   description: "Optimize your resume with AI-powered insights, ATS scoring, and career guidance",
-  generator: "v0.app",
+  generator: "Gaurav D.",
 }
 
 export default function RootLayout({

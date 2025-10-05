@@ -6,7 +6,7 @@ import { Badge } from "@/src/components/ui/badge"
 import { Loader2, DollarSign, TrendingUp, Info } from "lucide-react"
 import { useToast } from "@/src/hooks/use-toast"
 
-const API_URL = "http://localhost:5000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
 // Define the TypeScript interface for the API data structure
 interface SalaryInsights {

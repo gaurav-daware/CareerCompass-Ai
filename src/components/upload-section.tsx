@@ -9,7 +9,7 @@ import { Button } from "@/src/components/ui/button"
 import { useToast } from "@/src/hooks/use-toast"
 import { Alert, AlertDescription } from "@/src/components/ui/alert"
 
-const API_URL = "http://localhost:5000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
 interface UploadSectionProps {
   onUploadSuccess: (metadata: any, domain: string) => void
