@@ -8,8 +8,8 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "ResumeAI - AI-Powered Career Platform",
-  description: "Optimize your resume with AI-powered insights, ATS scoring, and career guidance",
+  title: "CareerCompass-AI",
+  description: "A complete full-stack application for analyzing resumes using AI, featuring ATS scoring, career chat, cover letter generation, interview preparation, and salary insights.",
   generator: "Gaurav D.",
 }
 
