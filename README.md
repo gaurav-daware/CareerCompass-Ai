@@ -15,7 +15,8 @@ A complete full-stack application for analyzing resumes using AI, featuring ATS 
 - **Personalized Career Guidance** - Chat with AI for real-time career advice and resume tips
 - **Domain-Specialized Advice** - Get tailored guidance based on your career field
 - **Strategic Career Planning** - Roadmap creation and career path recommendations
-- **Conversation Memory** - Powered by LangChain for contextual conversations that remember your previous interactions and career history
+- **Context-Aware Conversations** - LangChain-powered memory maintains conversation history for continuous, contextual career guidance
+- **Persistent Dialogue** - AI remembers your previous questions, career goals, and resume details throughout your session
 
 ### 📝 **Cover Letter Generator**
 - **Compelling Application Documents** - Create tailored cover letters that highlight your strengths
