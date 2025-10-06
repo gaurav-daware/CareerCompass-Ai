@@ -114,7 +114,7 @@ npm run dev
 
 ### 4. **Generate Cover Letters**
 - Use the **"Cover Letter"** tab
-- The Job Description will be pre-filled from your last input. Input company information.
+- The Job Description will be pre-filled from your last input. Input company information(optional).
 - Generate tailored cover letters in seconds
 
 ### 5. **Prepare for Interviews**
