@@ -42,6 +42,7 @@ A complete full-stack application for analyzing resumes using AI, featuring ATS 
 ### Frontend
 - Next.js 15 (App Router)
 - React 19
+- TanStack Query (for caching and state management)
 - TypeScript
 - Tailwind CSS v4
 - shadcn/ui components
