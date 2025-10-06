@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
 import { Button } from "@/src/components/ui/button"
 import { Textarea } from "@/src/components/ui/textarea"
@@ -9,6 +9,12 @@ import { Loader2, Briefcase, MessageCircle, Lightbulb, HelpCircle } from "lucide
 import { useToast } from "@/src/hooks/use-toast"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+
+// ===============================================
+// GLOBAL KEYS for UX Improvement (MUST BE SHARED)
+// ===============================================
+const JD_KEY = "global_job_description"; // Shared JD key for all sections
+const INTERVIEW_PREP_KEY = "interview_prep_result"; // Key unique to this component's output
 
 // 1. Define the TypeScript interface for the expected API data structure
 interface InterviewPrepData {
@@ -43,14 +49,62 @@ const cleanText = (text: string): string => {
 
 
 export default function InterviewPrepSection() {
-    const [jobRequirement, setJobRequirement] = useState("")
+    // --- JOB REQUIREMENT STATE: Reads from global storage on mount ---
+    const [jobRequirement, setJobRequirement] = useState("");
+    
     const [isGenerating, setIsGenerating] = useState(false)
-    // Use the defined interface for state typing
-    const [prepData, setPrepData] = useState<InterviewPrepData | null>(null)
+    // --- PREP DATA STATE: Loads previous result from its key ---
+    const [prepData, setPrepData] = useState<InterviewPrepData | null>(() => {
+        if (typeof window !== 'undefined') {
+            const storedResult = localStorage.getItem(INTERVIEW_PREP_KEY);
+            try {
+                return storedResult ? JSON.parse(storedResult) : null;
+            } catch (e) {
+                console.error("Could not parse stored interview prep data:", e);
+                return null;
+            }
+        }
+        return null;
+    });
     const { toast } = useToast()
 
+    // ===============================================
+    // LOCAL STORAGE EFFECTS (IMPROVED FOR SHARING)
+    // ===============================================
+    
+    // 1. Effect to load global JD state on mount.
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const storedJD = localStorage.getItem(JD_KEY) || "";
+            setJobRequirement(storedJD);
+        }
+    }, []); // Run only once on mount to pull shared JD
+
+    // 2. Effect to save generated prep data whenever it changes
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            if (prepData) {
+                localStorage.setItem(INTERVIEW_PREP_KEY, JSON.stringify(prepData));
+            } else {
+                localStorage.removeItem(INTERVIEW_PREP_KEY);
+            }
+        }
+    }, [prepData]);
+
+    // 3. Handler to update local state AND local storage for JD persistence
+    const handleJobRequirementChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        setJobRequirement(value);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(JD_KEY, value); // Write to the global key
+        }
+    };
+
+
     const handleGenerate = async () => {
-        if (!jobRequirement.trim()) {
+        const currentJD = jobRequirement.trim();
+
+        if (!currentJD) {
             toast({
                 title: "Job requirement required",
                 description: "Please enter a job description",
@@ -63,11 +117,11 @@ export default function InterviewPrepSection() {
         setPrepData(null) // Clear previous results
 
         try {
-            // NOTE: Assuming the backend automatically incorporates the resume analysis
             const response = await fetch(`${API_URL}/interview_prep`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ job_requirement: jobRequirement }),
+                // Use the synchronized jobRequirement state
+                body: JSON.stringify({ job_requirement: currentJD }),
             })
 
             if (!response.ok) {
@@ -88,7 +142,7 @@ export default function InterviewPrepSection() {
                 questions_to_ask: data.questions_to_ask ? data.questions_to_ask.map(cleanText) : [],
             }
             
-            setPrepData(cleanedData)
+            setPrepData(cleanedData) // This saves via useEffect
 
             toast({
                 title: "Interview prep ready",
@@ -106,6 +160,44 @@ export default function InterviewPrepSection() {
         }
     }
 
+    // Utility component to render a list card
+    const renderListCard = (
+        title: string, 
+        data: string[] | undefined, 
+        Icon: any, 
+        iconColor: string = 'text-primary', 
+        useBullet: boolean = false
+    ) => (
+        <Card className="flex flex-col">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Icon className={`w-5 h-5 ${iconColor}`} />
+                    {title}
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+                {data && data.length > 0 ? (
+                    <ul className="space-y-3">
+                        {data.map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-3">
+                                {useBullet ? (
+                                    <div className={`w-2 h-2 rounded-full ${iconColor.replace('text-', 'bg-')} mt-2 flex-shrink-0`} />
+                                ) : (
+                                    <Badge variant="outline" className="mt-0.5 flex-shrink-0">
+                                        {idx + 1}
+                                    </Badge>
+                                )}
+                                <p className="text-sm text-foreground flex-1">{item}</p>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-muted-foreground text-sm">No specific {title.toLowerCase()} generated.</p>
+                )}
+            </CardContent>
+        </Card>
+    );
+
     return (
         <div className="space-y-6">
             <Card>
@@ -117,11 +209,15 @@ export default function InterviewPrepSection() {
                     <Textarea
                         placeholder="Paste the job description here..."
                         value={jobRequirement}
-                        onChange={(e) => setJobRequirement(e.target.value)}
+                        onChange={handleJobRequirementChange} // Use synchronization handler
                         rows={6}
                         className="resize-none"
                     />
-                    <Button onClick={handleGenerate} disabled={isGenerating || !jobRequirement.trim()} className="w-full">
+                    <Button 
+                        onClick={handleGenerate} 
+                        disabled={isGenerating || !jobRequirement.trim()} 
+                        className="w-full"
+                    >
                         {isGenerating ? (
                             <>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -140,106 +236,39 @@ export default function InterviewPrepSection() {
             {/* Render Prep Data Cards */}
             {prepData && (
                 <div className="grid md:grid-cols-2 gap-6">
-                    
                     {/* Technical Questions */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Briefcase className="w-5 h-5 text-primary" />
-                                Technical Questions
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {prepData.technical_questions.length > 0 ? (
-                                <ul className="space-y-3">
-                                    {prepData.technical_questions.map((question, idx) => (
-                                        <li key={idx} className="flex items-start gap-3">
-                                            <Badge variant="outline" className="mt-0.5 flex-shrink-0">
-                                                {idx + 1}
-                                            </Badge>
-                                            <p className="text-sm text-foreground flex-1">{question}</p>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-muted-foreground text-sm">No specific technical questions generated.</p>
-                            )}
-                        </CardContent>
-                    </Card>
+                    {renderListCard(
+                        "Technical Questions", 
+                        prepData.technical_questions, 
+                        Briefcase, 
+                        'text-primary'
+                    )}
 
                     {/* Behavioral Questions */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <MessageCircle className="w-5 h-5 text-accent" />
-                                Behavioral Questions
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {prepData.behavioral_questions.length > 0 ? (
-                                <ul className="space-y-3">
-                                    {prepData.behavioral_questions.map((question, idx) => (
-                                        <li key={idx} className="flex items-start gap-3">
-                                            <Badge variant="outline" className="mt-0.5 flex-shrink-0">
-                                                {idx + 1}
-                                            </Badge>
-                                            <p className="text-sm text-foreground flex-1">{question}</p>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-muted-foreground text-sm">No specific behavioral questions generated.</p>
-                            )}
-                        </CardContent>
-                    </Card>
+                    {renderListCard(
+                        "Behavioral Questions", 
+                        prepData.behavioral_questions, 
+                        MessageCircle, 
+                        'text-accent-foreground'
+                    )}
 
                     {/* Key Talking Points */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Lightbulb className="w-5 h-5 text-warning" />
-                                Key Talking Points
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {prepData.key_talking_points.length > 0 ? (
-                                <ul className="space-y-3">
-                                    {prepData.key_talking_points.map((point, idx) => (
-                                        <li key={idx} className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-warning mt-2 flex-shrink-0" />
-                                            <p className="text-sm text-foreground flex-1">{point}</p>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-muted-foreground text-sm">No specific talking points generated.</p>
-                            )}
-                        </CardContent>
-                    </Card>
+                    {renderListCard(
+                        "Key Talking Points", 
+                        prepData.key_talking_points, 
+                        Lightbulb, 
+                        'text-yellow-600',
+                        true // Use bullet points
+                    )}
 
                     {/* Questions to Ask */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <HelpCircle className="w-5 h-5 text-success" />
-                                Questions to Ask the Interviewer
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {prepData.questions_to_ask.length > 0 ? (
-                                <ul className="space-y-3">
-                                    {prepData.questions_to_ask.map((question, idx) => (
-                                        <li key={idx} className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-success mt-2 flex-shrink-0" />
-                                            <p className="text-sm text-foreground flex-1">{question}</p>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-muted-foreground text-sm">No specific interviewer questions generated.</p>
-                            )}
-                        </CardContent>
-                    </Card>
+                    {renderListCard(
+                        "Questions to Ask the Interviewer", 
+                        prepData.questions_to_ask, 
+                        HelpCircle, 
+                        'text-green-600',
+                        true // Use bullet points
+                    )}
                 </div>
             )}
         </div>

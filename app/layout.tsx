@@ -7,29 +7,34 @@ import { Toaster } from "@/src/components/ui/toaster"
 import { Suspense } from "react"
 import "./globals.css"
 
+// 1. Import the QueryProvider component
+import QueryProvider from "@/src/lib/query-provider"
+
 export const metadata: Metadata = {
-  title: "CareerCompass-AI",
-  description: "A complete full-stack application for analyzing resumes using AI, featuring ATS scoring, career chat, cover letter generation, interview preparation, and salary insights.",
-  generator: "Gaurav D.",
+    title: "CareerCompass-AI",
+    description: "A complete full-stack application for analyzing resumes using AI, featuring ATS scoring, career chat, cover letter generation, interview preparation, and salary insights.",
+    generator: "Gaurav D.",
 }
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode
+    children: React.ReactNode
 }>) {
-  return (
-    <html lang="en">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        
-          
-        
-        <Suspense fallback={null}>
-          {children}
-          <Toaster />
-        </Suspense>
-        <Analytics />
-      </body>
-    </html>
-  )
+    return (
+        <html lang="en">
+            <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+                
+                {/* 2. Wrap children with the QueryProvider */}
+                <QueryProvider>
+                    <Suspense fallback={null}>
+                        {children}
+                        <Toaster />
+                    </Suspense>
+                </QueryProvider>
+                
+                <Analytics />
+            </body>
+        </html>
+    )
 }

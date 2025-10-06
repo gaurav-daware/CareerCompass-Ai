@@ -10,6 +10,10 @@ import { useToast } from "@/src/hooks/use-toast"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
+// ===============================================
+// INTERFACES & CONSTANTS
+// ===============================================
+
 interface Message {
   role: "user" | "assistant"
   content: string
@@ -24,6 +28,9 @@ interface ChatSectionProps {
   domain: string
 }
 
+// Local Storage Key
+const CHAT_HISTORY_KEY = "ai_advisor_chat_history";
+
 const initialSuggestedQuestions: FeatureQuestion[] = [
   { title: "Key Skills", question: "What are the key skills I should focus on to advance my career?" },
   { title: "Senior Role", question: "How can I transition from my current position to a senior role?" },
@@ -34,12 +41,9 @@ const initialSuggestedQuestions: FeatureQuestion[] = [
 ]
 
 
-/**
- * Cleans up common Markdown formatting (bold, italics, lists, headings)
- * to ensure plain, readable text inside the chat bubbles.
- * @param {string} text - The raw text string from the API.
- * @returns {string} The cleaned text string.
- */
+// ===============================================
+// MARKDOWN CLEANING UTILITY
+// ===============================================
 const cleanResponseFormatting = (text: string): string => {
   if (!text) return '';
   
@@ -50,7 +54,6 @@ const cleanResponseFormatting = (text: string): string => {
   cleanedText = cleanedText.replace(/^#+\s*/gm, '');
 
   // 3. Remove Markdown list markers (-, +, 1., etc.) at the start of a line
-  // This handles unordered lists (- or *) and ordered lists (1. 2. etc.)
   cleanedText = cleanedText.replace(/^(\s*[-+\d]+\.?)\s*/gm, '');
 
   // 4. Clean up any excessive newlines, reducing triple+ to double
@@ -63,8 +66,33 @@ const cleanResponseFormatting = (text: string): string => {
 };
 
 
+// ===============================================
+// MAIN COMPONENT
+// ===============================================
+
 export default function ChatSection({ domain }: ChatSectionProps) {
-  const [messages, setMessages] = useState<Message[]>([])
+  
+  // 1. Initialize messages state lazily from localStorage
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (typeof window === 'undefined') {
+      return []
+    }
+    try {
+      const stored = localStorage.getItem(CHAT_HISTORY_KEY)
+      const parsed = stored ? JSON.parse(stored) : []
+      
+      // Load history only if the stored domain matches the current domain to prevent stale context
+      if (parsed.length > 0 && parsed[0].content.includes(domain)) {
+          return parsed;
+      }
+      return []
+      
+    } catch (e) {
+      console.error("Failed to parse chat history from localStorage", e)
+      return []
+    }
+  })
+  
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -75,22 +103,31 @@ export default function ChatSection({ domain }: ChatSectionProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  // Effect to add initial welcome message and scroll
+  // 2. Effect 1: Save messages to localStorage and handle scrolling
   useEffect(() => {
-    // Add personalized welcome message only once
-    if (messages.length === 0) {
-      // The initial message is defined here without Markdown to begin with.
-      const welcomeMessage = {
-        role: "assistant" as const,
-        content: `Hello! I see you're interested in the ${domain} field. I'm your AI Career Advisor. Ask me anything about skill development, salary negotiation, interview prep, or your career roadmap. Let's start!`,
-      };
-      setMessages([welcomeMessage]);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages))
     }
-    // Scroll to bottom whenever messages change
     scrollToBottom()
-  }, [messages, domain])
+  }, [messages])
 
-  // Use useCallback to memoize the sending function
+
+  // 3. Effect 2: Add initial welcome message ONLY IF THE HISTORY IS EMPTY
+  useEffect(() => {
+    if (messages.length === 0) {
+        const welcomeMessage: Message = {
+            role: "assistant",
+            content: `Hello! I see you're interested in the ${domain} field. I'm your AI Career Advisor. Ask me anything about skill development, salary negotiation, interview prep, or your career roadmap. Let's start!`,
+        };
+        // Use functional update to avoid race conditions and only add if still empty
+        setMessages(prevMessages => 
+            prevMessages.length === 0 ? [welcomeMessage] : prevMessages
+        );
+    }
+  }, [domain]); 
+
+
+  // 4. Core API sending function
   const handleSend = useCallback(async (messageText?: string) => {
     const textToSend = messageText || input.trim()
     if (!textToSend) return
@@ -112,7 +149,7 @@ export default function ChatSection({ domain }: ChatSectionProps) {
 
       const data = await response.json()
       
-      // APPLY THE ROBUST CLEANING UTILITY HERE
+      // Apply cleaning utility to the response content
       const cleanedResponse = cleanResponseFormatting(data.response);
       
       setMessages((prev) => [...prev, { role: "assistant", content: cleanedResponse }])
@@ -139,8 +176,23 @@ export default function ChatSection({ domain }: ChatSectionProps) {
     }
   }
 
+  // 5. MODIFIED Function: Clears chat and forces a new greeting
   const handleClearChat = () => {
-    setMessages([])
+    // 1. Clear local storage
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem(CHAT_HISTORY_KEY);
+    }
+
+    // 2. Define the welcome message based on the current domain
+    const welcomeMessage: Message = {
+        role: "assistant",
+        content: `Hello! I see you're interested in the ${domain} field. I'm your AI Career Advisor. Ask me anything about skill development, salary negotiation, interview prep, or your career roadmap. Let's start!`,
+    };
+
+    // 3. Reset messages and add the welcome message back instantly
+    setMessages([welcomeMessage]); 
+    
+    // 4. Show the success notification
     toast({
       title: "Chat cleared",
       description: "Conversation history has been reset. Advisor will greet you again.",
@@ -162,9 +214,8 @@ export default function ChatSection({ domain }: ChatSectionProps) {
                 <Bot className="w-5 h-5 text-primary" />
                 AI Career Advisor
               </CardTitle>
-              
             </div>
-            {/* Clear Chat Button (Always show if history exists) */}
+            {/* Clear Chat Button (Show if there is more than just the welcome message) */}
             {messages.length > 1 && (
               <Button
                 variant="outline" 
@@ -207,6 +258,7 @@ export default function ChatSection({ domain }: ChatSectionProps) {
                   }`}
                 >
                   <p className="text-sm leading-relaxed">
+                    {/* Message content is already cleaned on receipt, display as is */}
                     {message.content}
                   </p>
                 </div>
@@ -236,7 +288,7 @@ export default function ChatSection({ domain }: ChatSectionProps) {
           {/* Input Area */}
           <div className="border-t pt-4 mt-auto">
             
-            {/* Quick Question Badges (Visible after initial message) */}
+            {/* Quick Question Badges */}
             {messages.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
                 {initialSuggestedQuestions.slice(0, 4).map((item, idx) => (

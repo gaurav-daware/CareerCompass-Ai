@@ -10,6 +10,13 @@ import { useToast } from "@/src/hooks/use-toast"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
+// ===============================================
+// GLOBAL KEYS for UX Improvement (MUST BE SHARED)
+// ===============================================
+const JD_KEY = "global_job_description";
+const COMPANY_KEY = "global_company_name";
+
+
 /**
  * Converts raw text (which likely contains \n\n for new paragraphs) into
  * HTML paragraphs for structured display in the final output card.
@@ -37,15 +44,46 @@ const textToHtmlParagraphs = (text: string): { __html: string } => {
 
 
 export default function CoverLetterSection() {
-  const [jobRequirement, setJobRequirement] = useState("")
-  const [companyName, setCompanyName] = useState("")
+  // 1. Initialize state lazily from Local Storage (Read from global keys)
+  const [jobRequirement, setJobRequirement] = useState(() => {
+    if (typeof window !== 'undefined') { return localStorage.getItem(JD_KEY) || ""; }
+    return "";
+  });
+  const [companyName, setCompanyName] = useState(() => {
+    if (typeof window !== 'undefined') { return localStorage.getItem(COMPANY_KEY) || ""; }
+    return "";
+  });
+  
   const [isGenerating, setIsGenerating] = useState(false)
   const [coverLetter, setCoverLetter] = useState("")
   const [copied, setCopied] = useState(false)
   const { toast } = useToast()
 
+  // 2. Handler to synchronize JD input with state and Local Storage
+  const handleJobRequirementChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setJobRequirement(value);
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(JD_KEY, value); // Write to global key
+    }
+  };
+
+  // 3. Handler to synchronize Company Name input with state and Local Storage
+  const handleCompanyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCompanyName(value);
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(COMPANY_KEY, value); // Write to global key
+    }
+  };
+
+
   const handleGenerate = async () => {
-    if (!jobRequirement.trim()) {
+    // Use current state (which is synchronized with local storage)
+    const currentJD = jobRequirement.trim();
+    const currentCompany = companyName.trim();
+
+    if (!currentJD) {
       toast({
         title: "Job requirement required",
         description: "Please enter a job description",
@@ -58,14 +96,13 @@ export default function CoverLetterSection() {
     setCoverLetter("") // Clear previous letter
 
     try {
-      // NOTE: Assuming your backend automatically includes the resume data for context
       const response = await fetch(`${API_URL}/generate_cover_letter`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          job_requirement: jobRequirement,
-          // Use "Hiring Team" as default for a cleaner output than "the company"
-          company_name: companyName.trim() || "Hiring Team",
+          job_requirement: currentJD,
+          // Use Company Name from synced state, default to "Hiring Team" if empty
+          company_name: currentCompany || "Hiring Team",
         }),
       })
 
@@ -74,7 +111,7 @@ export default function CoverLetterSection() {
       }
 
       const data = await response.json()
-      // Ensure the output field is consistent (data.cover_letter)
+      
       if (data.cover_letter) {
         setCoverLetter(data.cover_letter)
       } else {
@@ -97,7 +134,7 @@ export default function CoverLetterSection() {
   }
 
   const handleCopy = () => {
-    // FIX: When copying, ensure we copy the clean, un-HTML-formatted text from state
+    // Copy the clean, un-HTML-formatted text from state
     navigator.clipboard.writeText(coverLetter)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -116,7 +153,7 @@ export default function CoverLetterSection() {
         <CardHeader>
           <CardTitle>Generate Cover Letter</CardTitle>
           <CardDescription>
-            Create a personalized cover letter based on your resume and the job requirements
+            Create a personalized cover letter based on your resume and the job requirements.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -124,23 +161,23 @@ export default function CoverLetterSection() {
             <label className="text-sm font-medium text-foreground mb-2 block">Company Name (Optional)</label>
             <Input
               placeholder="e.g., Google, Microsoft, Startup Inc."
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
+              value={companyName} // Uses synced state
+              onChange={handleCompanyChange} // Uses sync handler
             />
           </div>
           <div>
             <label className="text-sm font-medium text-foreground mb-2 block">Job Description</label>
             <Textarea
               placeholder="Paste the job description here..."
-              value={jobRequirement}
-              onChange={(e) => setJobRequirement(e.target.value)}
+              value={jobRequirement} // Uses synced state
+              onChange={handleJobRequirementChange} // Uses sync handler
               rows={6}
               className="resize-none"
             />
           </div>
           <Button 
             onClick={handleGenerate} 
-            disabled={isGenerating || !jobRequirement.trim()} // Disable if input is empty
+            disabled={isGenerating || !jobRequirement.trim()} // Checks synced state
             className="w-full"
           >
             {isGenerating ? (
@@ -180,7 +217,7 @@ export default function CoverLetterSection() {
             </div>
           </CardHeader>
           <CardContent>
-            {/* FIX: Use dangerouslySetInnerHTML with the pre-processed HTML structure */}
+            {/* Renders the HTML paragraphs */}
             <div 
               className="text-foreground text-sm leading-relaxed" 
               dangerouslySetInnerHTML={coverLetterHtml} 

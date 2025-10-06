@@ -9,6 +9,7 @@ import uuid
 from flask_cors import CORS
 from dotenv import load_dotenv
 from datetime import datetime
+from difflib import SequenceMatcher
 
 import google.generativeai as genai
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -55,46 +56,85 @@ conversation_chain = None
 # ==================== IMPROVED KEYWORD EXTRACTION ====================
 
 def normalize_skill(skill):
-    """Normalize skills for better matching (lowercase, lemmatize, remove punctuation)"""
-    doc = nlp(skill.lower().strip())
-    tokens = [token.lemma_ for token in doc if not token.is_stop and not token.is_punct and token.is_alpha]
-    return ' '.join(tokens) if tokens else skill.lower().strip()
+    """Improved normalization with common technical term handling"""
+    skill_lower = skill.lower().strip()
+    
+    # Remove file extensions
+    skill_lower = re.sub(r'\.(js|py|tsx|jsx|ts)$', '', skill_lower)
+    
+    # Handle common variations (helps matching)
+    replacements = {
+        'javascript': 'js',
+        'typescript': 'ts',
+        'reactjs': 'react',
+        'react.js': 'react',
+        'nodejs': 'node',
+        'node.js': 'node',
+        'mongodb': 'mongo',
+        'postgresql': 'postgres',
+        'sql server': 'sqlserver',
+        'c++': 'cpp',
+        'c#': 'csharp',
+    }
+    
+    for old, new in replacements.items():
+        skill_lower = skill_lower.replace(old, new)
+    
+    # Light lemmatization (preserve technical terms)
+    doc = nlp(skill_lower)
+    tokens = [token.lemma_ if not token.text.isupper() else token.text 
+              for token in doc if not token.is_stop and not token.is_punct]
+    
+    return ' '.join(tokens) if tokens else skill_lower
+
+def fuzzy_match_keywords(resume_skills_norm, job_keywords_norm, threshold=0.85):
+    """Use fuzzy matching to catch similar keywords"""
+    matches = {}
+    unmatched_job_keywords = set(job_keywords_norm.keys())
+    
+    for resume_skill_norm, resume_skill_original in resume_skills_norm.items():
+        best_match = None
+        best_score = 0
+        
+        for job_keyword_norm in unmatched_job_keywords:
+            similarity = SequenceMatcher(None, resume_skill_norm, job_keyword_norm).ratio()
+            
+            if similarity > best_score and similarity >= threshold:
+                best_score = similarity
+                best_match = job_keyword_norm
+        
+        if best_match:
+            matches[best_match] = job_keywords_norm[best_match]
+            unmatched_job_keywords.discard(best_match)
+    
+    return matches
 
 def extract_keywords_from_text(text, max_keywords=30):
     """Extract keywords directly from text using NLP - UNIVERSAL for ALL domains"""
     keywords = set()
     
-    # 1. Extract using SpaCy NER and noun chunks (works for ANY domain)
-    doc = nlp(text[:5000])  # Limit processing to first 5000 chars for performance
+    # 1. Extract using SpaCy NER and noun chunks
+    doc = nlp(text[:5000])
     
-    # Get named entities - organizations, products, technologies, laws
     for ent in doc.ents:
         if ent.label_ in ['ORG', 'PRODUCT', 'GPE', 'WORK_OF_ART', 'LAW', 'EVENT', 'FAC']:
             if len(ent.text.strip()) > 2:
                 keywords.add(ent.text.strip())
     
-    # Get noun chunks - captures domain-specific terms naturally
     for chunk in doc.noun_chunks:
         chunk_text = chunk.text.strip()
         word_count = len(chunk_text.split())
-        # Accept 1-4 word phrases (covers most technical terms, skills, tools)
         if 1 <= word_count <= 4 and len(chunk_text) > 2:
-            # Filter out common generic words
             if not chunk_text.lower() in ['the company', 'the position', 'the role', 'the team', 'our team']:
                 keywords.add(chunk_text)
     
-    # 2. UNIVERSAL patterns (not domain-specific)
+    # 2. Universal patterns
     universal_patterns = [
-        # Years of experience
         r'(\d+)\+?\s*(?:years?|yrs?)\s+(?:of\s+)?(?:experience|exp)',
-        # Certifications (generic pattern)
         r'\b([A-Z]{2,}(?:\s+[A-Z]{2,})?)\s+(?:certified|certification|certificate)\b',
         r'\b(?:certified|certification)\s+([A-Z][A-Za-z\s&]+?)(?:\b)',
-        # Software/Tools pattern (any capitalized word followed by common software indicators)
         r'\b([A-Z][A-Za-z0-9+#.]{2,}(?:\.[A-Za-z]+)?)\b(?=\s+(?:software|tool|platform|suite|system))',
-        # Skills mentioned explicitly
         r'(?:proficient|experienced|skilled|expert|knowledge)\s+(?:in|with|at)\s+([A-Z][A-Za-z\s&+#.-]+?)(?:\.|,|;|\n|and|$)',
-        # Common file formats and standards
         r'\b([A-Z]{3,5})\b(?=\s+(?:format|file|standard|protocol))',
     ]
     
@@ -106,7 +146,7 @@ def extract_keywords_from_text(text, max_keywords=30):
             if len(match.strip()) > 2:
                 keywords.add(match.strip())
     
-    # 3. Extract degree requirements
+    # 3. Degree requirements
     degree_pattern = r'\b(Associate\'?s?|Bachelor\'?s?|Master\'?s?|PhD|Doctorate|B\.?A\.?|B\.?S\.?|M\.?A\.?|M\.?S\.?|M\.?B\.?A\.?|B\.?Tech|M\.?Tech|B\.?Sc|M\.?Sc|J\.?D\.?|M\.?D\.?|DDS|PharmD)\s*(?:degree\s+)?(?:in\s+)?([A-Z][A-Za-z\s]+?)(?:\.|,|;|\n|or|and|$)'
     matches = re.findall(degree_pattern, text, re.IGNORECASE)
     for match in matches:
@@ -117,30 +157,26 @@ def extract_keywords_from_text(text, max_keywords=30):
         if len(degree_text) > 3:
             keywords.add(degree_text)
     
-    # 4. Extract capitalized multi-word terms (often important skills/tools)
-    # Matches: "Content Management System", "Financial Modeling", "Patient Care"
+    # 4. Capitalized multi-word terms
     cap_phrase_pattern = r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\b'
     cap_matches = re.findall(cap_phrase_pattern, text)
     for match in cap_matches:
         if len(match) > 5 and match.lower() not in ['the company', 'the position']:
             keywords.add(match)
     
-    # 5. Extract acronyms (2-6 uppercase letters) - common in all fields
+    # 5. Acronyms
     acronym_pattern = r'\b([A-Z]{2,6})\b'
     acronyms = re.findall(acronym_pattern, text)
     for acronym in acronyms:
-        # Filter out common words that are all caps
         if acronym not in ['AND', 'OR', 'THE', 'FOR', 'NOT', 'BUT', 'ARE', 'WAS', 'WERE', 'YOU', 'ALL']:
             keywords.add(acronym)
     
-    # 6. Clean and normalize
+    # 6. Clean and filter
     cleaned_keywords = set()
     for kw in keywords:
-        # Remove special characters but keep important ones like +, #, .
         cleaned = re.sub(r'[^\w\s+#.-]', ' ', kw).strip()
         cleaned = re.sub(r'\s+', ' ', cleaned)
         
-        # Filter criteria
         if (cleaned and 
             len(cleaned) > 2 and 
             not cleaned.isdigit() and
@@ -151,10 +187,8 @@ def extract_keywords_from_text(text, max_keywords=30):
 
 def extract_required_skills_hybrid(job_requirement):
     """Hybrid approach: Extract from text + AI enhancement"""
-    # First, extract directly from text
     extracted_skills = extract_keywords_from_text(job_requirement, max_keywords=25)
     
-    # Then use AI to add missing important skills (limited to 8 additions)
     try:
         prompt = f"""
         From this job description, identify ONLY 5-8 critical requirements that are NOT already in this list: {extracted_skills}
@@ -175,7 +209,6 @@ def extract_required_skills_hybrid(job_requirement):
         cleaned = response.text.strip().replace('```json', '').replace('```', '').strip()
         ai_skills = json.loads(cleaned)
         
-        # Combine and remove duplicates
         combined_skills = list(set(extracted_skills + [s for s in ai_skills if len(s) < 50]))[:30]
         return {"hard_skills": combined_skills, "soft_skills": []}
     except Exception as e:
@@ -186,7 +219,6 @@ def extract_resume_skills_hybrid(resume_text, domain):
     """Extract skills from resume using hybrid approach"""
     extracted_skills = extract_keywords_from_text(resume_text, max_keywords=50)
     
-    # Optionally enhance with AI (but limit its influence)
     try:
         prompt = f"""
         From this {domain} resume, identify 8-12 additional important skills/qualifications NOT in: {extracted_skills[:20]}
@@ -211,56 +243,86 @@ def extract_resume_skills_hybrid(resume_text, domain):
         return extracted_skills
 
 def calculate_improved_ats_score(resume_text, job_requirement, domain):
-    """Improved ATS scoring with better weighting and normalization"""
+    """Improved ATS scoring with validation and fuzzy matching"""
     
-    # 1. Extract keywords
+    # Validate input length
+    word_count = len(job_requirement.strip().split())
+    if word_count < 10:
+        return {
+            "score": 0,
+            "error": f"Job description too short ({word_count} words). Please provide at least 50 words for accurate analysis.",
+            "skill_match_score": 0,
+            "semantic_score": 0,
+            "density_bonus": 0,
+            "matching_keywords": [],
+            "missing_keywords": [],
+            "keyword_density": {},
+            "total_job_keywords": 0,
+            "total_resume_skills": 0
+        }
+    
+    # Extract keywords
     required_skills_dict = extract_required_skills_hybrid(job_requirement)
     required_skills = required_skills_dict.get('hard_skills', [])
     resume_skills = extract_resume_skills_hybrid(resume_text, domain)
     
-    # 2. Normalize all skills for better matching
-    job_keywords_normalized = {}
-    for k in required_skills:
-        normalized = normalize_skill(k)
-        job_keywords_normalized[normalized] = k
+    if len(required_skills) == 0:
+        return {
+            "score": 0,
+            "error": "Could not extract meaningful keywords from job description. Please provide more detailed requirements.",
+            "skill_match_score": 0,
+            "semantic_score": 0,
+            "density_bonus": 0,
+            "matching_keywords": [],
+            "missing_keywords": [],
+            "keyword_density": {},
+            "total_job_keywords": 0,
+            "total_resume_skills": len(resume_skills)
+        }
     
-    resume_skills_normalized = {}
-    for s in resume_skills:
-        normalized = normalize_skill(s)
-        resume_skills_normalized[normalized] = s
+    # Normalize skills
+    job_keywords_normalized = {normalize_skill(k): k for k in required_skills}
+    resume_skills_normalized = {normalize_skill(s): s for s in resume_skills}
     
-    # 3. Find matches (normalized comparison)
-    matching_normalized = set(job_keywords_normalized.keys()) & set(resume_skills_normalized.keys())
-    matching_keywords = [job_keywords_normalized[norm] for norm in matching_normalized]
-    missing_keywords = [job_keywords_normalized[norm] for norm in 
-                       (set(job_keywords_normalized.keys()) - matching_normalized)]
+    # Exact matches
+    exact_matches = set(job_keywords_normalized.keys()) & set(resume_skills_normalized.keys())
+    matching_keywords = [job_keywords_normalized[norm] for norm in exact_matches]
     
-    # 4. Calculate skill match score
+    # Fuzzy matches for remaining
+    remaining_job_keywords = {k: v for k, v in job_keywords_normalized.items() 
+                             if k not in exact_matches}
+    fuzzy_matches = fuzzy_match_keywords(resume_skills_normalized, remaining_job_keywords, threshold=0.85)
+    matching_keywords.extend(fuzzy_matches.values())
+    
+    # Missing keywords
+    all_matched_normalized = exact_matches | set(fuzzy_matches.keys())
+    missing_keywords = [job_keywords_normalized[norm] for norm 
+                       in (set(job_keywords_normalized.keys()) - all_matched_normalized)]
+    
+    # Skill match score
     skill_match_ratio = len(matching_keywords) / max(1, len(required_skills))
     skill_match_score = skill_match_ratio * 100
     
-    # 5. Calculate semantic similarity (TF-IDF + Cosine)
+    # Semantic similarity
     try:
-        documents = [resume_text, job_requirement]
         vectorizer = TfidfVectorizer(
             stop_words='english',
-            ngram_range=(1, 2),  # Consider bigrams too
+            ngram_range=(1, 2),
             max_features=500,
             min_df=1,
             token_pattern=r'(?u)\b\w+\b'
         )
-        tfidf_matrix = vectorizer.fit_transform(documents)
+        tfidf_matrix = vectorizer.fit_transform([resume_text, job_requirement])
         
         if tfidf_matrix.shape[0] >= 2:
             cosine_sim = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])
             semantic_score = cosine_sim[0][0] * 100
         else:
             semantic_score = 0
-    except Exception as e:
-        print(f"Semantic similarity error: {e}")
+    except:
         semantic_score = 0
     
-    # 6. Calculate keyword density bonus (how many times keywords appear)
+    # Keyword density
     keyword_density = {}
     resume_lower = resume_text.lower()
     for kw in matching_keywords:
@@ -268,15 +330,11 @@ def calculate_improved_ats_score(resume_text, job_requirement, domain):
         keyword_density[kw] = count
     
     avg_density = sum(keyword_density.values()) / max(1, len(keyword_density))
-    density_bonus = min(10, avg_density * 2)  # Max 10 point bonus
+    density_bonus = min(10, avg_density * 2)
     
-    # 7. IMPROVED SCORING FORMULA
-    # Weight distribution:
-    # - 60% skill matching (exact keyword matches)
-    # - 30% semantic similarity (overall content relevance)
-    # - 10% keyword density bonus
+    # Final score
     final_score = (skill_match_score * 0.60) + (semantic_score * 0.30) + density_bonus
-    final_score = min(100, max(0, final_score))  # Clamp between 0-100
+    final_score = min(100, max(0, final_score))
     
     return {
         "score": round(final_score, 2),
@@ -413,8 +471,9 @@ def initialize_conversation_chain(resume_text, domain):
     1. Refuse inappropriate/offensive queries politely: "I assist with professional career questions only."
     2. Use chat_history for context (last 7 turns).
     3. For salary questions, provide ranges and factors, not exact figures.
-    4. Give actionable, specific advice for {{domain}}.
-    5. Be encouraging but honest about skill gaps.
+    4. **PRIMARY FOCUS:** Provide detailed, actionable advice specific to the **{{domain}}** field.
+    5. **CAREER SWITCHING:** If the user asks about switching careers (e.g., to Machine Learning) or moving to a different domain, provide a **high-level, strategic roadmap (3-4 steps)** on how they can transition (e.g., "Identify skill gaps," "Build a portfolio," "Certifications required"). Acknowledge that while you lack deep expertise in the new field, the strategic steps are universal.
+    6. Be encouraging but honest about skill gaps.
     
     {{chat_history}}
     Human: {{input}}
@@ -447,11 +506,14 @@ def detect_resume_domain(text):
 def perform_detailed_analysis(resume_text, job_requirement, domain):
     """Updated analysis function with improved scoring"""
     
-    # Use improved scoring
     scoring_result = calculate_improved_ats_score(resume_text, job_requirement, domain)
+    
+    # Check for errors
+    if "error" in scoring_result:
+        return scoring_result
+    
     final_score = scoring_result["score"]
     
-    # Generate recommendations and skill gaps
     recommendations = generate_recommendations(
         resume_text, 
         job_requirement, 
@@ -673,6 +735,14 @@ def rate_resumes():
         return jsonify({"error": "Job requirement empty"}), 400
     
     analysis_result = perform_detailed_analysis(cleaned_resume_text, job_requirement, detected_domain)
+    
+    # Check if there's an error from validation
+    if "error" in analysis_result:
+        return jsonify({
+            "error": analysis_result["error"],
+            "job_requirement": job_requirement,
+            "detected_domain": detected_domain
+        }), 400
     
     return jsonify({
         "job_requirement": job_requirement,
