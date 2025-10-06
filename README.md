@@ -37,6 +37,60 @@ A complete full-stack application for analyzing resumes using AI, featuring ATS 
 - **Competency Mapping** - Map your skills against industry requirements
 - **Learning Pathways** - Curated resources to bridge skill gaps
 
+## Visual Overview
+
+### Main Interface and Feature Showcase
+This shows the clean, modern interface and the availability of all tools after resume upload.
+
+![CareerCompass Main Dashboard and Tabs](./docs/images/image_9ee86a.png)
+
+***
+
+## 📖 Usage Guide
+
+### 1. **Upload Your Resume**
+- Click **"Upload Resume Now"** on the homepage
+- Select your PDF resume (max 10MB)
+- AI automatically detects your career domain and extracts key information
+
+![CareerCompass Landing Page and Upload Section](./docs/landing_page.png)
+
+### 2. **Get ATS Analysis**
+- Navigate to the **"Analysis"** tab
+- Paste a job description. This JD is automatically saved and synced with the Cover Letter and Interview tabs.
+- View keyword matches and improvement suggestions
+
+![Detailed ATS Score and Resume Analysis Results](./docs/resume_analyzer.png)
+
+### 3. **Chat with AI Career Coach**
+- Go to the **"Chat"** tab
+- Ask questions about career paths, resume improvements, or job search strategies
+- Get personalized advice based on your resume and goals
+
+![AI Career Advisor Chat Conversation](./docs/chatbot.png)
+
+### 4. **Generate Cover Letters**
+- Use the **"Cover Letter"** tab
+- The Job Description will be pre-filled from your last input. Input company information(optional).
+- Generate tailored cover letters in seconds
+
+![Cover Letter Generation Input and Output](./docs/cover_letter.png)
+
+### 5. **Prepare for Interviews**
+- Access the **"Interview"** tab
+- The Job Description will be pre-filled.
+- Get role-specific questions and practice scenarios
+
+![Interview Preparation Hub with Technical and Behavioral Questions](./docs/interview_prep.png)
+
+### 6. **Explore Salary Insights**
+- Check the **"Salary"** tab
+- View market rates for your position and experience level (loads instantly from cache after the first successful query).
+- Get negotiation tips and compensation benchmarks
+
+![Detailed Salary Insights and Negotiation Factors](./docs/salary.png)
+
+
 ## Tech Stack
 
 ### Frontend
@@ -95,37 +149,6 @@ npm run dev
 
 3. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## 📖 Usage Guide
-
-### 1. **Upload Your Resume**
-- Click **"Upload Resume Now"** on the homepage
-- Select your PDF resume (max 10MB)
-- AI automatically detects your career domain and extracts key information
-
-### 2. **Get ATS Analysis**
-- Navigate to the **"Analysis"** tab
-- Paste a job description. This JD is automatically saved and synced with the Cover Letter and Interview tabs.
-- View keyword matches and improvement suggestions
-
-### 3. **Chat with AI Career Coach**
-- Go to the **"Chat"** tab
-- Ask questions about career paths, resume improvements, or job search strategies
-- Get personalized advice based on your resume and goals
-
-### 4. **Generate Cover Letters**
-- Use the **"Cover Letter"** tab
-- The Job Description will be pre-filled from your last input. Input company information(optional).
-- Generate tailored cover letters in seconds
-
-### 5. **Prepare for Interviews**
-- Access the **"Interview"** tab
-- The Job Description will be pre-filled.
-- Get role-specific questions and practice scenarios
-
-### 6. **Explore Salary Insights**
-- Check the **"Salary"** tab
-- View market rates for your position and experience level (loads instantly from cache after the first successful query).
-- Get negotiation tips and compensation benchmarks
 
 ## API Endpoints
 
