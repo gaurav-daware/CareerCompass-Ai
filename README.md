@@ -42,7 +42,7 @@ A complete full-stack application for analyzing resumes using AI, featuring ATS 
 ### Main Interface and Feature Showcase
 This shows the clean, modern interface and the availability of all tools after resume upload.
 
-![CareerCompass Main Dashboard and Tabs](./docs/images/image_9ee86a.png)
+![CareerCompass Main Dashboard and Tabs](./docs/landing_page.png)
 
 ***
 
@@ -53,7 +53,7 @@ This shows the clean, modern interface and the availability of all tools after r
 - Select your PDF resume (max 10MB)
 - AI automatically detects your career domain and extracts key information
 
-![CareerCompass Landing Page and Upload Section](./docs/landing_page.png)
+![Upload Section](./docs/upload.png)
 
 ### 2. **Get ATS Analysis**
 - Navigate to the **"Analysis"** tab
