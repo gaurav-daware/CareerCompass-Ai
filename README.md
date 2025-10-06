@@ -104,7 +104,7 @@ npm run dev
 
 ### 2. **Get ATS Analysis**
 - Navigate to the **"Analysis"** tab
-- Paste a job description to get compatibility scoring
+- Paste a job description. This JD is automatically saved and synced with the Cover Letter and Interview tabs.
 - View keyword matches and improvement suggestions
 
 ### 3. **Chat with AI Career Coach**
@@ -114,16 +114,17 @@ npm run dev
 
 ### 4. **Generate Cover Letters**
 - Use the **"Cover Letter"** tab
-- Input job details and company information
+- The Job Description will be pre-filled from your last input. Input company information.
 - Generate tailored cover letters in seconds
 
 ### 5. **Prepare for Interviews**
 - Access the **"Interview"** tab
+- The Job Description will be pre-filled.
 - Get role-specific questions and practice scenarios
 
 ### 6. **Explore Salary Insights**
 - Check the **"Salary"** tab
-- View market rates for your position and experience level
+- View market rates for your position and experience level (loads instantly from cache after the first successful query).
 - Get negotiation tips and compensation benchmarks
 
 ## API Endpoints
