@@ -794,6 +794,88 @@ def salary_insights_endpoint():
 def index():
     return jsonify({"message": "Resume Analyzer API", "status": "running"})
 
+# ADD THIS TO YOUR app.py FILE
+
+@app.route('/generate_career_roadmap', methods=['POST'])
+def generate_career_roadmap_endpoint():
+    """Generate structured career roadmap for career transitions"""
+    if not cleaned_resume_text:
+        return jsonify({"error": "Upload resume first"}), 400
+    
+    data = request.get_json()
+    target_role = data.get('target_role', '')
+    current_experience = data.get('current_experience', '')
+    
+    if not target_role.strip():
+        return jsonify({"error": "Target role is required"}), 400
+    
+    try:
+        # Build the prompt for structured roadmap
+        prompt = f"""
+Generate a detailed career transition roadmap from {detected_domain} to {target_role}.
+{f"Current experience: {current_experience}" if current_experience else ""}
+
+Resume context: {cleaned_resume_text[:1000]}
+
+Return ONLY valid JSON with this EXACT structure (no markdown, no extra text):
+{{
+  "current_position": "Their current role based on resume",
+  "target_position": "{target_role}",
+  "total_duration": "X-Y months/years estimate",
+  "difficulty_level": "Beginner/Intermediate/Advanced",
+  "phases": [
+    {{
+      "phase": 1,
+      "title": "Foundation Building",
+      "duration": "1-2 months",
+      "description": "Brief description of this phase",
+      "skills": ["Skill 1", "Skill 2", "Skill 3"],
+      "resources": ["Resource 1", "Resource 2"],
+      "milestones": ["Milestone 1", "Milestone 2"]
+    }},
+    {{
+      "phase": 2,
+      "title": "Skill Development",
+      "duration": "2-3 months",
+      "description": "Brief description",
+      "skills": ["Skill 1", "Skill 2"],
+      "resources": ["Resource 1", "Resource 2"],
+      "milestones": ["Milestone 1", "Milestone 2"]
+    }}
+  ],
+  "certifications": ["Cert 1", "Cert 2", "Cert 3"],
+  "networking_tips": ["Tip 1", "Tip 2", "Tip 3"],
+  "portfolio_projects": ["Project 1", "Project 2", "Project 3"]
+}}
+
+Rules:
+- Include 4-6 phases
+- Each phase must have a valid duration (e.g., "2-4 months")
+- Be specific and actionable
+- Focus on practical, achievable steps
+- Return ONLY the JSON object, nothing else
+"""
+        
+        response = gemini_model.generate_content(prompt)
+        response_text = response.text.strip()
+        
+        # Clean up the response
+        response_text = response_text.replace('```json', '').replace('```', '').strip()
+        
+        # Try to parse as JSON
+        try:
+            roadmap_data = json.loads(response_text)
+            return jsonify(roadmap_data), 200
+        except json.JSONDecodeError as je:
+            # If JSON parsing fails, return the raw text for frontend to handle
+            return jsonify({
+                "error": "Could not parse roadmap as JSON",
+                "raw_response": response_text
+            }), 500
+            
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate roadmap: {str(e)}"}), 500
+
 if __name__ == '__main__':
     if not GEMINI_API_KEY:
         print("Set GEMINI_API_KEY environment variable")
