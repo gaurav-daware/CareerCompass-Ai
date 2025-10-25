@@ -11,6 +11,12 @@ A complete full-stack application for analyzing resumes using AI, featuring ATS 
 - **Resume Optimization** - AI-powered suggestions to improve your resume
 - **Universal Domain Support** - Works for all careers from tech to healthcare, finance to creative
 
+### 🗺️ **Career Roadmap Generator** (New Feature)
+- **Personalized Learning Path** - Generate a multi-phase, step-by-step plan to transition to your target role.
+- **Milestone Tracking** - Clear milestones, duration estimates, and difficulty levels for each phase.
+- **Resource Curation** - Includes recommended skills, learning resources, essential certifications, and portfolio projects.
+- **Downloadable Plan** - Export your full roadmap as an HTML file for offline reference.
+
 ### 🤖 **AI Career Coach**
 - **Personalized Career Guidance** - Chat with AI for real-time career advice and resume tips
 - **Domain-Specialized Advice** - Get tailored guidance based on your career field
@@ -62,28 +68,35 @@ This shows the clean, modern interface and the availability of all tools after r
 
 ![Detailed ATS Score and Resume Analysis Results](./docs/resume_analyzer.png)
 
-### 3. **Chat with AI Career Coach**
+### 3. **Generate Career Roadmap** (New Step)
+- Navigate to the **"Roadmap"** tab
+- Enter your Target Role and your Current Experience (optional, but recommended for personalized results).
+- Click "Generate Career Roadmap" to get a detailed, multi-phase plan.
+
+![Detailed Career Roadmap](./docs/roadmap.png)
+
+### 4. **Chat with AI Career Coach**
 - Go to the **"Chat"** tab
 - Ask questions about career paths, resume improvements, or job search strategies
 - Get personalized advice based on your resume and goals
 
 ![AI Career Advisor Chat Conversation](./docs/chatbot.png)
 
-### 4. **Generate Cover Letters**
+### 5. **Generate Cover Letters**
 - Use the **"Cover Letter"** tab
 - The Job Description will be pre-filled from your last input. Input company information(optional).
 - Generate tailored cover letters in seconds
 
 ![Cover Letter Generation Input and Output](./docs/cover_letter.png)
 
-### 5. **Prepare for Interviews**
+### 6. **Prepare for Interviews**
 - Access the **"Interview"** tab
 - The Job Description will be pre-filled.
 - Get role-specific questions and practice scenarios
 
 ![Interview Preparation Hub with Technical and Behavioral Questions](./docs/interview_prep.png)
 
-### 6. **Explore Salary Insights**
+### 7. **Explore Salary Insights**
 - Check the **"Salary"** tab
 - View market rates for your position and experience level (loads instantly from cache after the first successful query).
 - Get negotiation tips and compensation benchmarks
