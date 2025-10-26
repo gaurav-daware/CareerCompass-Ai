@@ -1,6 +1,6 @@
 # CareerCompass Ai - Intelligent Career Optimization Platform
 
-A complete full-stack application for analyzing resumes using AI, featuring ATS scoring, career chat, cover letter generation, interview preparation, and salary insights.
+A complete full-stack application: Analyze your resume with ATS Scoring, generate a Career Roadmap, get AI Coaching, craft compelling Cover Letters and Cold Emails, ace your Interviews, and unlock Salary Insights for total career control. 🚀
 
 ## Features
 
@@ -28,6 +28,12 @@ A complete full-stack application for analyzing resumes using AI, featuring ATS 
 - **Compelling Application Documents** - Create tailored cover letters that highlight your strengths
 - **Job-Specific Customization** - Automatically match cover letters to job descriptions
 - **Professional Templates** - Multiple formatting options for different industries
+
+### 📧 **Cold Email Generator** (New Feature)
+- **Targeted Outreach** - Generate professional cold emails for various purposes: **Direct Application**, **Networking**, **Referral Requests**, and **Follow-up**.
+- **Contextual Subject Lines** - Creates engaging primary and alternative subject lines to maximize open rates.
+- **Personalized Content** - Utilizes synced job descriptions and user-provided context for hyper-personalized email bodies.
+- **Recipient Customization** - Tailor emails to a specific recipient name and title.
 
 ### 💼 **Interview Preparation**
 - **Confident Interview Practice** - Practice with likely interview questions and talking points
@@ -89,14 +95,22 @@ This shows the clean, modern interface and the availability of all tools after r
 
 ![Cover Letter Generation Input and Output](./docs/cover_letter.png)
 
-### 6. **Prepare for Interviews**
+### 8. **Generate Cold Emails** (New Step)
+- Navigate to the new **"Cold Email"** tab.
+- Select your desired **Email Type** (e.g., Networking, Direct Application).
+- Fill in the Company Name (required) and Recipient Details (optional).
+- Click "Generate Cold Email" to receive a tailored subject line and body.
+
+![Generates Various types of emails](./docs/email.png)
+
+### 7. **Prepare for Interviews**
 - Access the **"Interview"** tab
 - The Job Description will be pre-filled.
 - Get role-specific questions and practice scenarios
 
 ![Interview Preparation Hub with Technical and Behavioral Questions](./docs/interview_prep.png)
 
-### 7. **Explore Salary Insights**
+### 8. **Explore Salary Insights**
 - Check the **"Salary"** tab
 - View market rates for your position and experience level (loads instantly from cache after the first successful query).
 - Get negotiation tips and compensation benchmarks
