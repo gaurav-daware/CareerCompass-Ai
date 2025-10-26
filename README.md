@@ -177,17 +177,6 @@ npm run dev
 3. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 
-## API Endpoints
-
-- `POST /upload` - Upload resume
-- `POST /rate_resumes` - Analyze resume against job description
-- `POST /career_roadmap` - Chat with AI career advisor
-- `POST /generate_cover_letter` - Generate cover letter
-- `POST /interview_prep` - Get interview preparation
-- `GET /salary_insights` - Get salary insights
-- `GET /resume_templates` - Get resume format recommendations
-- `POST /delete` - Delete uploaded resume
-
 ## Environment Variables
 
 ### Backend
