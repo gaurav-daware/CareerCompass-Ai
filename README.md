@@ -96,7 +96,7 @@ This shows the clean, modern interface and the availability of all tools after r
 ![Cover Letter Generation Input and Output](./docs/cover_letter.png)
 
 ### 8. **Generate Cold Emails** (New Step)
-- Navigate to the new **"Cold Email"** tab.
+- Navigate to the new **"Email"** tab.
 - Select your desired **Email Type** (e.g., Networking, Direct Application).
 - Fill in the Company Name (required) and Recipient Details (optional).
 - Click "Generate Cold Email" to receive a tailored subject line and body.
