@@ -399,7 +399,201 @@ def generate_cover_letter(resume_text, job_requirement, domain, company_name="th
         return response.text.strip()
     except Exception as e:
         return f"Error generating cover letter: {str(e)}"
+    
+def generate_subject_lines(company_name, email_type, recipient_name=""):
+    """Generate 3-4 subject line suggestions based on email type"""
+    try:
+        prompt = f"""Generate 4 compelling email subject lines for a {email_type} email to {company_name}.
+        Recipient: {recipient_name or 'Hiring Manager'}
+        
+        Requirements:
+        - Keep each under 60 characters
+        - Make them specific and actionable
+        - Avoid generic phrases like "Seeking Opportunities"
+        - Include company name or role-specific details
+        
+        Return ONLY a JSON array: ["Subject 1", "Subject 2", "Subject 3", "Subject 4"]
+        """
+        response = gemini_model.generate_content(prompt)
+        cleaned = response.text.strip().replace('```json', '').replace('```', '').strip()
+        subjects = json.loads(cleaned)
+        return subjects[:4] if isinstance(subjects, list) else []
+    except:
+        # Fallback subject lines
+        fallbacks = {
+            'direct': [
+                f"Application for Role at {company_name}",
+                f"Experienced Professional Interested in {company_name}",
+                f"Adding Value to {company_name}'s Team"
+            ],
+            'networking': [
+                f"Learning from {company_name}'s Success",
+                f"Coffee Chat with {company_name} Team?",
+                f"Seeking Advice from {company_name} Professional"
+            ],
+            'referral': [
+                f"Introduction Request - {company_name}",
+                f"Referred Connection at {company_name}",
+                f"Mutual Interest in {company_name}"
+            ],
+            'followup': [
+                f"Following Up - {company_name} Application",
+                f"Checking In: {company_name} Opportunity",
+                f"Continued Interest in {company_name}"
+            ]
+        }
+        return fallbacks.get(email_type, [f"Regarding {company_name}"])
 
+def generate_cold_email(
+    resume_text, 
+    email_type, 
+    company_name,
+    recipient_name="Hiring Manager",
+    recipient_title="",
+    job_requirement="",
+    additional_context=""
+):
+    """Generate personalized cold emails with structured output"""
+    
+    # Build recipient display
+    recipient_display = f"{recipient_name}"
+    if recipient_title:
+        recipient_display += f" ({recipient_title})"
+    
+    # Build context
+    context_parts = []
+    if job_requirement:
+        context_parts.append(f"Job Context: {job_requirement[:400]}")
+    if additional_context:
+        context_parts.append(f"Additional Info: {additional_context[:200]}")
+    context_str = "\n".join(context_parts) if context_parts else "General outreach"
+    
+    prompts = {
+        'direct': f"""Write a concise cold email (100-120 words) for a direct job application.
+
+Recipient: {recipient_display}
+Company: {company_name}
+Resume Summary: {resume_text[:800]}
+{context_str}
+
+Structure:
+- Compelling subject line that mentions role or key skill
+- Brief intro (1-2 sentences) - why this company/role
+- Highlight 2-3 most relevant qualifications with specifics
+- Clear call-to-action (request interview/discussion)
+- Professional closing with contact info
+
+Return as valid JSON:
+{{
+    "subject_line": "Primary subject line",
+    "email_body": "Full email with greeting, body, closing, signature",
+    "alternative_subjects": ["Alt 1", "Alt 2", "Alt 3"]
+}}
+
+Tone: Professional, confident, specific. Avoid generic phrases.""",
+        
+        'networking': f"""Write a warm networking cold email (80-100 words).
+
+Recipient: {recipient_display}
+Company: {company_name}
+Background: {resume_text[:600]}
+{context_str}
+
+Structure:
+- Subject line focused on learning/advice (NOT job request)
+- Personalized opening showing genuine interest in their work
+- Brief relevant background mention (1-2 sentences max)
+- Specific ask: 15-minute coffee chat or informational interview
+- Make it easy to say yes
+- Gracious closing
+
+Return as valid JSON:
+{{
+    "subject_line": "Primary subject line",
+    "email_body": "Full email text",
+    "alternative_subjects": ["Alt 1", "Alt 2", "Alt 3"]
+}}
+
+Tone: Humble, curious, respectful. Show research about them/company.""",
+        
+        'referral': f"""Write a polite referral request email (90-110 words).
+
+Recipient: {recipient_display}
+Company: {company_name}
+Background: {resume_text[:700]}
+{context_str}
+
+Structure:
+- Subject mentioning mutual connection or shared background
+- Opening: How you found them (LinkedIn, mutual connection, etc.)
+- Brief relevant background (2-3 sentences)
+- Specific request: referral or introduction to hiring team
+- Make it LOW effort for them (offer to send resume, etc.)
+- Appreciative closing
+
+Return as valid JSON:
+{{
+    "subject_line": "Primary subject line",
+    "email_body": "Full email text",
+    "alternative_subjects": ["Alt 1", "Alt 2", "Alt 3"]
+}}
+
+Tone: Polite, appreciative, clear. Make the ask very specific.""",
+        
+        'followup': f"""Write a professional follow-up email (60-80 words).
+
+Recipient: {recipient_display}
+Company: {company_name}
+Previous Context: {additional_context or 'Previously applied/interviewed'}
+Background: {resume_text[:500]}
+
+Structure:
+- Subject referencing previous interaction
+- Brief reminder of previous contact (when and what)
+- Restate interest in role/company
+- Provide update or new relevant info (if any)
+- Polite ask for status update or next steps
+- Professional closing
+
+Return as valid JSON:
+{{
+    "subject_line": "Primary subject line",
+    "email_body": "Full email text",
+    "alternative_subjects": ["Alt 1", "Alt 2", "Alt 3"]
+}}
+
+Tone: Polite, patient, professionally persistent. Not desperate."""
+    }
+    
+    try:
+        prompt = prompts.get(email_type, prompts['direct'])
+        response = gemini_model.generate_content(prompt)
+        cleaned_response = response.text.strip().replace('```json', '').replace('```', '').strip()
+        
+        email_data = json.loads(cleaned_response)
+        
+        # Validate and ensure all fields exist
+        if not email_data.get('subject_line'):
+            email_data['subject_line'] = f"Regarding Opportunity at {company_name}"
+        
+        if not email_data.get('email_body'):
+            raise ValueError("No email body generated")
+        
+        if not email_data.get('alternative_subjects'):
+            email_data['alternative_subjects'] = generate_subject_lines(
+                company_name, email_type, recipient_name
+            )
+        
+        return email_data
+        
+    except Exception as e:
+        # Fallback response
+        return {
+            'subject_line': f"Regarding {company_name} Opportunity",
+            'email_body': f"Error generating email: {str(e)}",
+            'alternative_subjects': generate_subject_lines(company_name, email_type)
+        }
+    
 def get_interview_prep(resume_text, job_requirement, domain):
     """Generate likely interview questions and talking points."""
     try:
@@ -764,6 +958,49 @@ def generate_cover_letter_endpoint():
     
     cover_letter = generate_cover_letter(cleaned_resume_text, job_req, detected_domain, company)
     return jsonify({"cover_letter": cover_letter}), 200
+
+@app.route('/generate_cold_email', methods=['POST'])
+def generate_cold_email_endpoint():
+    """Generate personalized cold emails for different purposes"""
+    if not cleaned_resume_text:
+        return jsonify({"error": "Upload resume first"}), 400
+    
+    data = request.get_json()
+    email_type = data.get('email_type', 'direct')
+    company_name = data.get('company_name', '')
+    recipient_name = data.get('recipient_name', 'Hiring Manager')
+    recipient_title = data.get('recipient_title', '')
+    job_requirement = data.get('job_requirement', '')
+    additional_context = data.get('additional_context', '')
+    
+    if not company_name.strip():
+        return jsonify({"error": "Company name is required"}), 400
+    
+    # Validate email type
+    valid_types = ['direct', 'networking', 'referral', 'followup']
+    if email_type not in valid_types:
+        return jsonify({"error": f"Invalid email type. Must be one of: {valid_types}"}), 400
+    
+    try:
+        email_result = generate_cold_email(
+            resume_text=cleaned_resume_text,
+            email_type=email_type,
+            company_name=company_name,
+            recipient_name=recipient_name,
+            recipient_title=recipient_title,
+            job_requirement=job_requirement,
+            additional_context=additional_context
+        )
+        
+        return jsonify(email_result), 200
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to generate email: {str(e)}",
+            "subject_line": f"Regarding {company_name}",
+            "email_body": "An error occurred while generating your email. Please try again.",
+            "alternative_subjects": []
+        }), 500
 
 @app.route('/interview_prep', methods=['POST'])
 def interview_prep_endpoint():

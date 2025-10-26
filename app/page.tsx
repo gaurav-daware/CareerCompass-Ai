@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Upload, FileText, MessageSquare, FileCheck, Briefcase, DollarSign, Sparkles, TrendingUp, Map } from "lucide-react"
+import { Upload, FileText, MessageSquare, FileCheck, Briefcase, DollarSign, Sparkles, TrendingUp, Map, Mail } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs"
 import { Button } from "@/src/components/ui/button"
 import { Badge } from "@/src/components/ui/badge"
@@ -11,6 +11,7 @@ import UploadSection from "@/src/components/upload-section"
 import AnalysisSection from "@/src/components/analysis-section"
 import ChatSection from "@/src/components/chat-section"
 import CoverLetterSection from "@/src/components/cover-letter-section"
+import ColdEmailSection from "@/src/components/ColdEmailSection"
 import InterviewPrepSection from "@/src/components/interview-prep-section"
 import SalaryInsightsSection from "@/src/components/salary-insights-section"
 import CareerRoadmapSection from "@/src/components/career-roadmap-section"
@@ -21,19 +22,22 @@ import CareerRoadmapSection from "@/src/components/career-roadmap-section"
 const LOCAL_STORAGE_KEYS = [
     "global_job_description",
     "global_company_name",
+    "global_recipient_name",
+    "global_recipient_title",
+    "global_email_type",
     "ats_analysis_result",
     "ai_advisor_chat_history",
     "interview_prep_result",
     "salary_insights_result",
-];
+]
 
 const clearAllLocalStorage = () => {
     if (typeof window !== 'undefined') {
         LOCAL_STORAGE_KEYS.forEach(key => {
-            localStorage.removeItem(key);
-        });
+            localStorage.removeItem(key)
+        })
     }
-};
+}
 
 export default function Home() {
     const [resumeUploaded, setResumeUploaded] = useState(false)
@@ -66,6 +70,12 @@ export default function Home() {
             title: "Cover Letter Craft",
             description: "Auto-generate professional cover letters tailored to each job description to boost your application success",
             tab: "cover-letter"
+        },
+        {
+            icon: Mail,
+            title: "Cold Email Generator",
+            description: "Create personalized cold emails for networking, job applications, referrals, and follow-ups",
+            tab: "cold-email"
         },
         {
             icon: Briefcase,
@@ -104,7 +114,7 @@ export default function Home() {
         setResumeMetadata(null)
         setDetectedDomain("")
         setActiveTab("analysis")
-        clearAllLocalStorage();
+        clearAllLocalStorage()
         window.scrollTo({ top: 0, behavior: 'smooth' })
         
         toast({
@@ -309,7 +319,7 @@ export default function Home() {
                     ) : (
                         <div id="tabs-section" className="space-y-6">
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-10">
-                                <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 gap-2 bg-muted/50 p-1.5 h-auto rounded-lg my-6">
+                                <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 gap-2 bg-muted/50 p-1.5 h-auto rounded-lg my-6">
                                     <TabsTrigger value="analysis" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm transition-all">
                                         <FileCheck className="w-4 h-4" />
                                         <span className="hidden sm:inline">Analysis</span>
@@ -325,6 +335,10 @@ export default function Home() {
                                     <TabsTrigger value="cover-letter" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm transition-all">
                                         <FileText className="w-4 h-4" />
                                         <span className="hidden sm:inline">Cover</span>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="cold-email" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm transition-all">
+                                        <Mail className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Email</span>
                                     </TabsTrigger>
                                     <TabsTrigger value="interview" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm transition-all">
                                         <Briefcase className="w-4 h-4" />
@@ -364,6 +378,10 @@ export default function Home() {
 
                                 <TabsContent value="cover-letter" className="space-y-4">
                                     <CoverLetterSection />
+                                </TabsContent>
+
+                                <TabsContent value="cold-email" className="space-y-4">
+                                    <ColdEmailSection />
                                 </TabsContent>
 
                                 <TabsContent value="interview" className="space-y-4">
